@@ -1,8 +1,8 @@
 class OssCli < Formula
   desc "Offline-first prompt intelligence workbench for open-source maintainers"
   homepage "https://github.com/ramanathan1504/oss-cli"
-  url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.4.0/oss-cli-1.4.0.jar"
-  sha256 "6a587e131878fac90370a946384b0af845f087a692f2e693120731034f64922d"
+  url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.4.1/oss-cli-1.4.1.jar"
+  sha256 "c4ec4737ae9bc1381586b236e76137b6e2424d439252615f44f0e88ae4466f7e"
   license "Apache-2.0"
 
   depends_on "openjdk@17"
