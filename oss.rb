@@ -1,4 +1,4 @@
-class OssCli < Formula
+class Oss < Formula
   desc "Maintainer workbench: reads any repo, runs what needs running, remembers what you worked out"
   homepage "https://github.com/ramanathan1504/oss-cli"
   url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.6.0/oss-cli-1.6.0.jar"
@@ -11,15 +11,15 @@ class OssCli < Formula
     # Derived from the URL, so a version bump means editing url + sha256 only.
     libexec.install File.basename(stable.url) => "oss-cli.jar"
 
-    # `oss` is the name you type. `oss-cli` stays as a symlink, permanently:
-    # it is in people's scripts, notes and muscle memory, and breaking those to
-    # shorten a name would charge them for a rename they did not ask for.
+    # One name, always. A second built-in name is a second thing to keep working,
+    # document and reason about forever -- and anyone who wants a different one
+    # can make it themselves with `oss alias`, which is theirs to maintain rather
+    # than ours.
     (bin/"oss").write <<~EOS
       #!/bin/bash
       export JAVA_HOME="#{Formula["openjdk@17"].opt_prefix}"
       exec "${JAVA_HOME}/bin/java" -jar "#{libexec}/oss-cli.jar" "$@"
     EOS
-    bin.install_symlink bin/"oss" => "oss-cli"
   end
 
   def caveats
@@ -38,13 +38,12 @@ class OssCli < Formula
 
         oss alias buddy
 
-      `oss-cli` still works, and always will. Upgrading from self-analyse or
-      issue-ai? Your data relocates to ~/.oss-cli automatically on first run.
+      Upgrading from oss-cli, self-analyse or issue-ai? Your data relocates
+      automatically on first run -- nothing to move by hand.
     EOS
   end
 
   test do
     system "#{bin}/oss", "--help"
-    system "#{bin}/oss-cli", "--help"
   end
 end

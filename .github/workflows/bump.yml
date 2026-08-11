@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i -e 's|url ".*"|url "${{ steps.latest.outputs.url }}"|' \
-                 -e 's|sha256 ".*"|sha256 "${{ steps.latest.outputs.sha }}"|' oss-cli.rb
+                 -e 's|sha256 ".*"|sha256 "${{ steps.latest.outputs.sha }}"|' oss.rb
 
           # No diff means the formula is already current -- the normal outcome of
           # a poll, and not something to commit or report as work.
