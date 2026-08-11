@@ -1,8 +1,8 @@
 class Oss < Formula
   desc "Maintainer workbench: reads any repo, runs what needs running, remembers what you worked out"
   homepage "https://github.com/ramanathan1504/oss-cli"
-  url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.6.0/oss-cli-1.6.0.jar"
-  sha256 "0194673a63baac91c600ca8691f79d2faa42b38325d04a40246fe9bf99703305"
+  url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.6.1/oss-cli-1.6.1.jar"
+  sha256 "3910db4d50bc18e54816d216be14f9d96843c0385abf7d33c40642fcd648d68f"
   license "Apache-2.0"
 
   depends_on "openjdk@17"
