@@ -1,0 +1,67 @@
+# Keep the formula pointing at the newest oss-cli release.
+#
+# This used to be a step in oss-cli's own release workflow, pushing here with a
+# personal access token. That token expired and the release silently shipped a
+# formula still pointing at the previous version -- `brew upgrade` said "already
+# installed" while a newer release existed, which is the worst kind of failure:
+# nothing is broken, nothing is reported, and the user is simply not getting the
+# thing that was published.
+#
+# The fix is to remove the cross-repo credential entirely. oss-cli is public, so
+# its releases are readable with no authentication at all, and a workflow here
+# writes to its OWN repository using the automatic GITHUB_TOKEN. Nothing to
+# rotate, nothing to expire.
+name: Bump formula
+
+on:
+  # Polled rather than pushed, because a push needs a credential and that is the
+  # thing being removed. Three-hourly is well inside how often a release happens.
+  schedule:
+    - cron: "17 */3 * * *"
+  # For when you have just released and do not want to wait for the poll.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the newest release
+        id: latest
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/latest"
+          tag=$(curl -fsSL "$api" | jq -r .tag_name)
+          [ -n "$tag" ] && [ "$tag" != "null" ] || { echo "no release found"; exit 1; }
+          version="${tag#v}"
+          url="https://github.com/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/download/${tag}/oss-cli-${version}.jar"
+          # Hash what is actually published, not what a build log once said. If the
+          # asset is missing this fails here rather than committing a formula whose
+          # sha256 nothing can satisfy.
+          curl -fsSL "$url" -o /tmp/oss-cli.jar
+          echo "version=$version"                >> "$GITHUB_OUTPUT"
+          echo "url=$url"                        >> "$GITHUB_OUTPUT"
+          echo "sha=$(sha256sum /tmp/oss-cli.jar | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Update the formula if it has moved
+        run: |
+          set -euo pipefail
+          sed -i -e 's|url ".*"|url "${{ steps.latest.outputs.url }}"|' \
+                 -e 's|sha256 ".*"|sha256 "${{ steps.latest.outputs.sha }}"|' oss-cli.rb
+
+          # No diff means the formula is already current -- the normal outcome of
+          # a poll, and not something to commit or report as work.
+          if git diff --quiet; then
+            echo "already at ${{ steps.latest.outputs.version }}"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Bump formula to v${{ steps.latest.outputs.version }}"
+          git push
+          echo "bumped to ${{ steps.latest.outputs.version }}"
