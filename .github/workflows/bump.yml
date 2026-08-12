@@ -38,20 +38,47 @@ jobs:
           tag=$(curl -fsSL "$api" | jq -r .tag_name)
           [ -n "$tag" ] && [ "$tag" != "null" ] || { echo "no release found"; exit 1; }
           version="${tag#v}"
-          url="https://github.com/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/download/${tag}/oss-cli-${version}.jar"
-          # Hash what is actually published, not what a build log once said. If the
-          # asset is missing this fails here rather than committing a formula whose
-          # sha256 nothing can satisfy.
-          curl -fsSL "$url" -o /tmp/oss-cli.jar
-          echo "version=$version"                >> "$GITHUB_OUTPUT"
-          echo "url=$url"                        >> "$GITHUB_OUTPUT"
-          echo "sha=$(sha256sum /tmp/oss-cli.jar | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          base="https://github.com/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/download/${tag}"
+
+          # Hash what is actually published, per platform. The formula ships
+          # self-contained archives now -- one per platform, each with its own
+          # runtime -- so a single url/sha256 pair cannot describe it. An earlier
+          # version of this step patched exactly one pair and left `version`
+          # alone, which could not bump anything and would have pointed a
+          # tarball formula at a bare jar.
+          for a in macos-arm64 linux-x64; do
+            curl -fsSL "$base/oss-$a.tar.gz" -o "/tmp/$a.tar.gz"
+            echo "sha_$a=$(sha256sum "/tmp/$a.tar.gz" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          done
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "base=$base"       >> "$GITHUB_OUTPUT"
+          echo "latest release: $tag"
 
       - name: Update the formula if it has moved
         run: |
           set -euo pipefail
-          sed -i -e 's|url ".*"|url "${{ steps.latest.outputs.url }}"|' \
-                 -e 's|sha256 ".*"|sha256 "${{ steps.latest.outputs.sha }}"|' oss.rb
+          v="${{ steps.latest.outputs.version }}"
+          base="${{ steps.latest.outputs.base }}"
+
+          # Anchored per platform rather than a blanket substitution: the formula
+          # holds two url/sha256 pairs, and replacing them without distinguishing
+          # macOS from Linux would give both platforms one architecture's archive.
+          python3 - "$v" "$base" \
+            "${{ steps.latest.outputs.sha_macos-arm64 }}" \
+            "${{ steps.latest.outputs.sha_linux-x64 }}" <<'PY'
+          import re, sys
+          v, base, mac_sha, linux_sha = sys.argv[1:5]
+          s = open("oss.rb").read()
+          s = re.sub(r'version "[^"]*"', f'version "{v}"', s, count=1)
+          s = re.sub(r'(on_arm do\s*\n\s*url ")[^"]*(")',
+                     lambda m: m.group(1) + f"{base}/oss-macos-arm64.tar.gz" + m.group(2), s)
+          s = re.sub(r'(on_intel do\s*\n\s*url ")[^"]*(")',
+                     lambda m: m.group(1) + f"{base}/oss-linux-x64.tar.gz" + m.group(2), s)
+          # Each sha256 follows its own url, so replace them in document order.
+          shas = iter([mac_sha, linux_sha])
+          s = re.sub(r'sha256 "[^"]*"', lambda m: f'sha256 "{next(shas)}"', s)
+          open("oss.rb", "w").write(s)
+          PY
 
           # No diff means the formula is already current -- the normal outcome of
           # a poll, and not something to commit or report as work.
