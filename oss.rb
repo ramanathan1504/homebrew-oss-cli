@@ -1,25 +1,35 @@
 class Oss < Formula
   desc "Maintainer workbench: reads any repo, runs what needs running, remembers what you worked out"
-  homepage "https://github.com/ramanathan1504/oss-cli"
-  url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.6.1/oss-cli-1.6.1.jar"
-  sha256 "3910db4d50bc18e54816d216be14f9d96843c0385abf7d33c40642fcd648d68f"
+  homepage "https://ubuos.com"
   license "Apache-2.0"
+  version "1.7.0"
 
-  depends_on "openjdk@17"
+  # Self-contained: the archive carries its own Java runtime, so there is no
+  # depends_on "openjdk" any more. "First install Java 17" was a strange thing to
+  # ask from a tool whose claim is that it needs almost nothing.
+  #
+  # Apple Silicon only for now. GitHub retired the Intel macOS runners, so there
+  # is nothing to build an x64 archive ON -- and shipping one built elsewhere
+  # would produce a runtime that looks right and does not run.
+  on_macos do
+    on_arm do
+      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.7.0/oss-macos-arm64.tar.gz"
+      sha256 "ab76cfc63a6891ce4756fd2536f38f0eb90c9181674019189bb27596c9f6e375"
+    end
+  end
+
+  on_linux do
+    on_intel do
+      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.7.0/oss-linux-x64.tar.gz"
+      sha256 "08e3137a0ff6a64283263563562e9f6fb95d9dc67c7a86e41e951e185d8e306a"
+    end
+  end
 
   def install
-    # Derived from the URL, so a version bump means editing url + sha256 only.
-    libexec.install File.basename(stable.url) => "oss-cli.jar"
-
-    # One name, always. A second built-in name is a second thing to keep working,
-    # document and reason about forever -- and anyone who wants a different one
-    # can make it themselves with `oss alias`, which is theirs to maintain rather
-    # than ours.
-    (bin/"oss").write <<~EOS
-      #!/bin/bash
-      export JAVA_HOME="#{Formula["openjdk@17"].opt_prefix}"
-      exec "${JAVA_HOME}/bin/java" -jar "#{libexec}/oss-cli.jar" "$@"
-    EOS
+    libexec.install Dir["*"]
+    # A symlink, not a copy: the launcher resolves its own directory to find the
+    # bundled runtime beside it, so it has to keep living next to it.
+    bin.install_symlink libexec/"oss"
   end
 
   def caveats
@@ -27,23 +37,17 @@ class Oss < Formula
       Start here:
 
         oss doctor      # every prerequisite at once, with the fix for each
-        oss setup       # optional: models, tokens, note folders
 
-      Nothing beyond Java and a GitHub token is required. A local model server
-      and a cloud key each add something, and it works without either:
+      Nothing but a GitHub token is required -- no Java, no model, no account.
+      Search works with none of it; a model only makes it better:
 
-        brew install ollama && ollama serve    # optional: local answers, search by meaning
+        oss search "rollover compression" --global
 
-      Prefer your own name for it?
-
-        oss alias buddy
-
-      Upgrading from oss-cli, self-analyse or issue-ai? Your data relocates
-      automatically on first run -- nothing to move by hand.
+      Prefer your own name for it?  oss alias buddy
     EOS
   end
 
   test do
-    system "#{bin}/oss", "--help"
+    system bin/"oss", "--version"
   end
 end
