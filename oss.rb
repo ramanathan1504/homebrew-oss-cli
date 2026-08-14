@@ -2,7 +2,7 @@ class Oss < Formula
   desc "Maintainer workbench: reads any repo, runs what needs running, remembers what you worked out"
   homepage "https://ubuos.com"
   license "Apache-2.0"
-  version "1.11.3"
+  version "1.11.4"
 
   # Self-contained: the archive carries its own Java runtime, so there is no
   # depends_on "openjdk" any more. "First install Java 17" was a strange thing to
@@ -13,15 +13,15 @@ class Oss < Formula
   # would produce a runtime that looks right and does not run.
   on_macos do
     on_arm do
-      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.11.3/oss-macos-arm64.tar.gz"
-      sha256 "ff4766faf43f3e0505bfd0736a44c3ffb2270a67cfd68ff34056c891cb216149"
+      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.11.4/oss-macos-arm64.tar.gz"
+      sha256 "8583a0c32cd7bf0a628688de985794a56546533502cf4b1c9520dcf7c6757479"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.11.3/oss-linux-x64.tar.gz"
-      sha256 "d76211740e29a209abf5d346b0da5e815083407fd3d7bfb1753f766494af0dd2"
+      url "https://github.com/ramanathan1504/oss-cli/releases/download/v1.11.4/oss-linux-x64.tar.gz"
+      sha256 "7c1822604f022be8e51891d80f1fb7d8b5d338f1a6bbb5b7375472fbe6576304"
     end
   end
 
