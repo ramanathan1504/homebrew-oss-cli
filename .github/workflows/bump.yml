@@ -15,10 +15,18 @@ name: Bump formula
 
 on:
   # Polled rather than pushed, because a push needs a credential and that is the
-  # thing being removed. Three-hourly is well inside how often a release happens.
+  # thing being removed -- the last one expired and shipped a stale formula.
+  #
+  # Daily rather than three-hourly, because this is now the safety net and no
+  # longer the route. oss-cli's release.sh starts this workflow itself the
+  # moment it has tagged, using the credential the person releasing already has
+  # in their own shell: nothing is stored here, nothing expires, and the formula
+  # is current within a minute of the release rather than within three hours.
+  # Eight runs a day to catch a release that happens twice a week was the
+  # arithmetic that made this worth changing.
   schedule:
-    - cron: "17 */3 * * *"
-  # For when you have just released and do not want to wait for the poll.
+    - cron: "17 6 * * *"
+  # Started by release.sh, and by hand when a release was cut some other way.
   workflow_dispatch:
 
 permissions:
