@@ -40,10 +40,29 @@ jobs:
 
       - name: Read the newest release
         id: latest
+        env:
+          # The runner's own token, minted for this run and gone when it ends --
+          # not the stored cross-repo credential the header above is about, so
+          # there is still nothing here to rotate and nothing to expire.
+          #
+          # It is present only for the rate limit. oss-cli is public and this read
+          # needs no authorisation whatsoever, but an unauthenticated call is
+          # counted against 60 per hour shared by everything leaving the runner's
+          # IP, and a release that dispatches this workflow a few times over
+          # spends that budget. The bump then dies on `curl: (22) 403` -- a
+          # request that was never forbidden, only counted -- and the formula
+          # stays on the previous version, which is the silent staleness this
+          # whole file exists to prevent.
+          #
+          # On the API call only. The asset downloads below go to
+          # github.com/.../releases/download, which redirects to a storage host
+          # that rejects a request carrying an Authorization header meant for
+          # somewhere else.
+          GH_API_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           api="https://api.github.com/repos/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/latest"
-          tag=$(curl -fsSL "$api" | jq -r .tag_name)
+          tag=$(curl -fsSL -H "Authorization: Bearer $GH_API_TOKEN" "$api" | jq -r .tag_name)
           [ -n "$tag" ] && [ "$tag" != "null" ] || { echo "no release found"; exit 1; }
           version="${tag#v}"
           base="https://github.com/${GITHUB_REPOSITORY_OWNER}/oss-cli/releases/download/${tag}"
